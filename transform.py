@@ -712,14 +712,7 @@ def transform_evaluation_response(
         csv_row["total_score"] = "N/A"
         csv_row["total_max"] = "N/A"
 
-    # Extract bonus points and deductions
-    if evaluation and hasattr(evaluation, "bonus_points"):
-        csv_row["bonus_points"] = evaluation.bonus_points.total
-        csv_row["bonus_breakdown"] = evaluation.bonus_points.breakdown
-    else:
-        csv_row["bonus_points"] = 0
-        csv_row["bonus_breakdown"] = ""
-
+    # Extract deductions
     if evaluation and hasattr(evaluation, "deductions"):
         csv_row["deductions"] = evaluation.deductions.total
         csv_row["deduction_reasons"] = evaluation.deductions.reasons
