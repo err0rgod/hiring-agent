@@ -4,59 +4,73 @@ Utility functions for LLM providers.
 
 import logging
 from typing import Any, Dict, Optional
-from models import ModelProvider, OllamaProvider, GeminiProvider
-from prompt import MODEL_PROVIDER_MAPPING, GEMINI_API_KEY
+from models import ModelProvider, OllamaProvider, GeminiProvider, GroqProvider
+from prompt import MODEL_PROVIDER_MAPPING, GEMINI_API_KEY, GROQ_API_KEY
 
 logger = logging.getLogger(__name__)
 
 
+import re
+
 def extract_json_from_response(response_text: str) -> str:
     """
-    Extract JSON content from markdown code blocks.
-
-    Args:
-        response_text: Text that may contain JSON wrapped in markdown code blocks
-
-    Returns:
-        Text with markdown code block syntax removed
+    Extract JSON content from markdown code blocks or the raw response.
     """
-
     response_text = response_text.strip()
+    
+    # Handle <think> blocks (DeepSeek/Thinking models)
     if "<think>" in response_text:
-        think_start = response_text.find("<think>")
-        think_end = response_text.find("</think>")
-        if think_start != -1 and think_end != -1:
-            response_text = response_text[:think_start] + response_text[think_end + 8 :]
+        response_text = re.sub(r'<think>.*?</think>', '', response_text, flags=re.DOTALL).strip()
 
-    # Remove leading ```json if present
-    if response_text.startswith("```json"):
-        response_text = response_text[7:]
-    # Remove trailing ``` if present
-    if response_text.endswith("```"):
-        response_text = response_text[:-3]
+    # Try to find JSON in markdown code blocks
+    json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+    if json_match:
+        return json_match.group(1).strip()
+    
+    # Try generic code block if json block not found
+    code_match = re.search(r'```\s*(.*?)\s*```', response_text, re.DOTALL)
+    if code_match:
+        return code_match.group(1).strip()
+
+    # If no code blocks, look for first { and last }
+    bracket_match = re.search(r'(\{.*\})', response_text, re.DOTALL)
+    if bracket_match:
+        return bracket_match.group(1).strip()
+
     return response_text
 
 
-def initialize_llm_provider(model_name: str) -> Any:
+def initialize_llm_provider(model_name: str, api_key: Optional[str] = None) -> Any:
     """
     Initialize the appropriate LLM provider based on the model name.
 
     Args:
         model_name: The name of the model to use
+        api_key: Optional API key to use (overrides environment variable)
 
     Returns:
-        An initialized LLM provider (either OllamaProvider or GeminiProvider)
+        An initialized LLM provider (either OllamaProvider, GeminiProvider, or GroqProvider)
     """
     # Default to Ollama provider
     provider = OllamaProvider()
-    # If using Gemini and API key is available, use Gemini provider
+    # If using Gemini or Groq and API key is available, use appropriate provider
     model_provider = MODEL_PROVIDER_MAPPING.get(model_name, ModelProvider.OLLAMA)
+
     if model_provider == ModelProvider.GEMINI:
-        if not GEMINI_API_KEY:
+        key = api_key or GEMINI_API_KEY
+        if not key:
             logger.warning("⚠️ Gemini API key not found. Falling back to Ollama.")
         else:
             logger.info(f"🔄 Using Google Gemini API provider with model {model_name}")
-            provider = GeminiProvider(api_key=GEMINI_API_KEY)
+            provider = GeminiProvider(api_key=key)
+    elif model_provider == ModelProvider.GROQ:
+        key = api_key or GROQ_API_KEY
+        if not key:
+            logger.warning("⚠️ Groq API key not found. Falling back to Ollama.")
+        else:
+            logger.info(f"🔄 Using Groq API provider with model {model_name}")
+            provider = GroqProvider(api_key=key)
     else:
         logger.info(f"🔄 Using Ollama provider with model {model_name}")
     return provider
+

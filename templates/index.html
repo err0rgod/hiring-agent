@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hiring Agent - Resume Evaluator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <div class="gradient-bg py-12 px-4 shadow-lg mb-8">
+        <div class="max-w-4xl mx-auto text-center text-white">
+            <h1 class="text-4xl font-extrabold mb-2">Hiring Agent</h1>
+            <p class="text-xl opacity-90">AI-Powered Resume Analysis & ATS Optimization</p>
+        </div>
+    </div>
+
+    <main class="max-w-2xl mx-auto px-4 pb-12">
+        <div class="bg-white rounded-xl shadow-md p-8 border border-gray-100">
+            <form action="/evaluate" method="POST" enctype="multipart/form-data" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Resume PDF</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-indigo-400 transition-colors">
+                        <div class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="resume" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none">
+                                    <span>Upload a file</span>
+                                    <input id="resume" name="resume" type="file" accept=".pdf" class="sr-only" required>
+                                </label>
+                                <p class="pl-1">or drag and drop</p>
+                            </div>
+                            <p class="text-xs text-gray-500">PDF up to 10MB</p>
+                            <p id="file-name" class="text-sm font-semibold text-indigo-600 mt-2 hidden"></p>
+                            <div id="file-success" class="hidden mt-2 flex items-center justify-center text-green-600 text-sm font-bold">
+                                <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                Resume Ready for Analysis
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="groq_api_key" class="block text-sm font-medium text-gray-700 mb-2">Groq API Key</label>
+                    <div class="relative">
+                        <input type="password" name="groq_api_key" id="groq_api_key" 
+                               class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-3 border" 
+                               placeholder="gsk_..." required>
+                        <div id="key-success" class="hidden absolute right-3 top-3 text-green-600">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">Your key is processed in memory and never stored.</p>
+                </div>
+
+                <div>
+                    <label for="job_description" class="block text-sm font-medium text-gray-700 mb-2">Job Description (Optional)</label>
+                    <textarea name="job_description" id="job_description" rows="4"
+                              class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-3 border" 
+                              placeholder="Paste the job description here for a tailored analysis..."></textarea>
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit" id="submit-btn" disabled
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-400 cursor-not-allowed transition-all">
+                        Analyze Resume
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div id="loading" class="mt-8 hidden text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent mb-4"></div>
+            <p class="text-gray-600 font-medium">Analyzing your resume... This may take up to a minute.</p>
+        </div>
+    </main>
+
+    <script>
+        const fileInput = document.getElementById('resume');
+        const fileNameDisplay = document.getElementById('file-name');
+        const fileSuccess = document.getElementById('file-success');
+        const keyInput = document.getElementById('groq_api_key');
+        const keySuccess = document.getElementById('key-success');
+        const form = document.querySelector('form');
+        const loading = document.getElementById('loading');
+        const submitBtn = document.getElementById('submit-btn');
+
+        function updateButtonState() {
+            const hasFile = fileInput.files.length > 0;
+            const hasKey = keyInput.value.trim().length >= 10; // Groq keys are long
+            
+            if (hasKey) {
+                keySuccess.classList.remove('hidden');
+            } else {
+                keySuccess.classList.add('hidden');
+            }
+
+            if (hasFile && hasKey) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                submitBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700', 'cursor-pointer');
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                submitBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700', 'cursor-pointer');
+            }
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileNameDisplay.textContent = e.target.files[0].name;
+                fileNameDisplay.classList.remove('hidden');
+                fileSuccess.classList.remove('hidden');
+            } else {
+                fileNameDisplay.classList.add('hidden');
+                fileSuccess.classList.add('hidden');
+            }
+            updateButtonState();
+        });
+
+        keyInput.addEventListener('input', updateButtonState);
+
+        form.addEventListener('submit', () => {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            loading.classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>

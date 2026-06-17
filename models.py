@@ -8,6 +8,7 @@ class ModelProvider(Enum):
 
     OLLAMA = "ollama"
     GEMINI = "gemini"
+    GROQ = "groq"
 
 
 @runtime_checkable
@@ -316,7 +317,7 @@ class GeminiProvider:
     def __init__(self, api_key: str):
         import google.generativeai as genai
 
-        genai.configure(api_key=api_key)
+        genai.configure(api_key=api_key, transport="rest")
         self.client = genai
 
     def chat(
@@ -351,3 +352,42 @@ class GeminiProvider:
 
         # Convert Gemini response to Ollama-like format for compatibility
         return {"message": {"role": "assistant", "content": response.text}}
+
+
+class GroqProvider:
+    """Groq Cloud API provider implementation."""
+
+    def __init__(self, api_key: str):
+        from groq import Groq
+
+        self.client = Groq(api_key=api_key)
+
+    def chat(
+        self,
+        model: str,
+        messages: List[Dict[str, str]],
+        options: Dict[str, Any] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Send a chat request to Groq."""
+        chat_params = {
+            "model": model,
+            "messages": messages,
+        }
+
+        if options:
+            if "temperature" in options:
+                chat_params["temperature"] = options["temperature"]
+            if "top_p" in options:
+                chat_params["top_p"] = options["top_p"]
+
+        if "format" in kwargs and kwargs["format"] == "json":
+            chat_params["response_format"] = {"type": "json_object"}
+
+        response = self.client.chat.completions.create(**chat_params)
+        return {
+            "message": {
+                "role": "assistant",
+                "content": response.choices[0].message.content,
+            }
+        }

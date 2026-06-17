@@ -41,6 +41,10 @@ MODEL_PARAMETERS = {
     "gemini-2.5-flash-lite": {"temperature": 0.1, "top_p": 0.9},
     "gemini-3.5-flash": {"temperature": 0.1, "top_p": 0.9},
     "gemini-3.1-flash-lite": {"temperature": 0.1, "top_p": 0.9},
+    # Groq models
+    "llama-3.3-70b-versatile": {"temperature": 0.1, "top_p": 0.9},
+    "llama-3.1-70b-versatile": {"temperature": 0.1, "top_p": 0.9},
+    "mixtral-8x7b-32768": {"temperature": 0.1, "top_p": 0.9},
 }
 
 # Model provider mapping
@@ -61,7 +65,12 @@ MODEL_PROVIDER_MAPPING = {
     "gemini-2.5-pro": ModelProvider.GEMINI,
     "gemini-3.5-flash": ModelProvider.GEMINI,
     "gemini-3.1-flash-lite": ModelProvider.GEMINI,
+    # Groq models
+    "llama-3.3-70b-versatile": ModelProvider.GROQ,
+    "llama-3.1-70b-versatile": ModelProvider.GROQ,
+    "mixtral-8x7b-32768": ModelProvider.GROQ,
 }
 
 # Get API keys from environment
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")

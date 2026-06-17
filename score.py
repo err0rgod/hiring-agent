@@ -6,7 +6,7 @@ import csv
 from pdf import PDFHandler
 from github import fetch_and_display_github_info
 from models import JSONResume, EvaluationData
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from evaluator import ResumeEvaluator
 from pathlib import Path
 from prompt import DEFAULT_MODEL, MODEL_PARAMETERS
@@ -160,12 +160,18 @@ def print_evaluation_results(
 
 
 def _evaluate_resume(
-    resume_data: JSONResume, github_data: dict = None, blog_data: dict = None
-) -> Optional[EvaluationData]:
+    resume_data: JSONResume,
+    github_data: dict = None,
+    blog_data: dict = None,
+    api_key: Optional[str] = None,
+    job_description: Optional[str] = None,
+) -> Tuple[Optional[EvaluationData], str]:
     """Evaluate the resume using AI and display results."""
 
     model_params = MODEL_PARAMETERS.get(DEFAULT_MODEL)
-    evaluator = ResumeEvaluator(model_name=DEFAULT_MODEL, model_params=model_params)
+    evaluator = ResumeEvaluator(
+        model_name=DEFAULT_MODEL, model_params=model_params, api_key=api_key
+    )
 
     # Convert JSON resume data to text
     resume_text = convert_json_resume_to_text(resume_data)
@@ -183,9 +189,12 @@ def _evaluate_resume(
     # Evaluate the enhanced resume
     evaluation_result = evaluator.evaluate_resume(resume_text)
 
-    # print(evaluation_result)
+    # Generate ATS suggestions (optionally with JD)
+    ats_suggestions = evaluator.generate_ats_suggestions(
+        resume_text, job_description=job_description
+    )
 
-    return evaluation_result
+    return evaluation_result, ats_suggestions
 
 
 def find_profile(profiles, network):
@@ -197,7 +206,9 @@ def find_profile(profiles, network):
     )
 
 
-def main(pdf_path):
+def main(
+    pdf_path, api_key: Optional[str] = None, job_description: Optional[str] = None
+):
     # Create cache filename based on PDF path
     cache_filename = (
         f"cache/resumecache_{os.path.basename(pdf_path).replace('.pdf', '')}.json"
@@ -216,17 +227,28 @@ def main(pdf_path):
             f"Extracting data from PDF"
             + (" and caching to " + cache_filename if DEVELOPMENT_MODE else "")
         )
-        pdf_handler = PDFHandler()
+        pdf_handler = PDFHandler(model_name=DEFAULT_MODEL, api_key=api_key)
         resume_data = pdf_handler.extract_json_from_pdf(pdf_path)
 
         if resume_data == None:
-            return None
+            return None, "", None
+
+        # Basic validation to ensure we got something meaningful
+        if not resume_data.basics or (
+            not resume_data.work and not resume_data.education and not resume_data.skills
+        ):
+            logger.error("❌ Failed to extract meaningful sections from the resume.")
+            return (
+                None,
+                "The system could not parse the sections of your resume. Please ensure the PDF is text-searchable and not an image.",
+                resume_data,
+            )
 
         if DEVELOPMENT_MODE:
             os.makedirs(os.path.dirname(cache_filename), exist_ok=True)
             Path(cache_filename).write_text(
                 json.dumps(resume_data.model_dump(), indent=2, ensure_ascii=False),
-                encoding='utf-8'
+                encoding="utf-8",
             )
 
     # Check if cache exists and we're in development mode
@@ -251,11 +273,12 @@ def main(pdf_path):
         if DEVELOPMENT_MODE:
             os.makedirs(os.path.dirname(github_cache_filename), exist_ok=True)
             Path(github_cache_filename).write_text(
-                json.dumps(github_data, indent=2, ensure_ascii=False),
-                encoding='utf-8'
+                json.dumps(github_data, indent=2, ensure_ascii=False), encoding="utf-8"
             )
 
-    score = _evaluate_resume(resume_data, github_data)
+    score, ats_suggestions = _evaluate_resume(
+        resume_data, github_data, api_key=api_key, job_description=job_description
+    )
 
     # Get candidate name for display
     candidate_name = os.path.basename(pdf_path).replace(".pdf", "")
@@ -293,7 +316,7 @@ def main(pdf_path):
             # Write the row
             writer.writerow(csv_row)
 
-    return score
+    return score, ats_suggestions, resume_data
 
 
 if __name__ == "__main__":

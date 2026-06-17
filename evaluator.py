@@ -22,11 +22,17 @@ logger = logging.getLogger(__name__)
 
 
 class ResumeEvaluator:
-    def __init__(self, model_name: str = DEFAULT_MODEL, model_params: dict = None):
+    def __init__(
+        self,
+        model_name: str = DEFAULT_MODEL,
+        model_params: dict = None,
+        api_key: Optional[str] = None,
+    ):
         if not model_name:
             raise ValueError("Model name cannot be empty")
 
         self.model_name = model_name
+        self.api_key = api_key
         self.model_params = model_params or MODEL_PARAMETERS.get(
             model_name, {"temperature": 0.5, "top_p": 0.9}
         )
@@ -35,7 +41,7 @@ class ResumeEvaluator:
 
     def _initialize_llm_provider(self):
         """Initialize the appropriate LLM provider based on the model."""
-        self.provider = initialize_llm_provider(self.model_name)
+        self.provider = initialize_llm_provider(self.model_name, api_key=self.api_key)
 
     def _load_evaluation_prompt(self, resume_text: str) -> str:
         criteria_template = self.template_manager.render_template(
@@ -78,14 +84,56 @@ class ResumeEvaluator:
             response = self.provider.chat(**chat_params, **kwargs)
 
             response_text = response["message"]["content"]
-            response_text = extract_json_from_response(response_text)
-            logger.error(f"🔤 Prompt response: {response_text}")
+            logger.debug(f"Raw LLM response: {response_text}")
+            
+            extracted_json = extract_json_from_response(response_text)
+            logger.debug(f"Extracted JSON: {extracted_json}")
 
-            evaluation_dict = json.loads(response_text)
-            evaluation_data = EvaluationData(**evaluation_dict)
-
-            return evaluation_data
+            try:
+                evaluation_dict = json.loads(extracted_json)
+                evaluation_data = EvaluationData(**evaluation_dict)
+                return evaluation_data
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.error(f"Failed to parse LLM response as JSON: {e}")
+                logger.error(f"Problematic text: {extracted_json}")
+                # Fallback or retry logic could go here
+                raise ValueError(f"The model returned an invalid response. Please try again. (Detail: {str(e)})")
 
         except Exception as e:
             logger.error(f"Error evaluating resume: {str(e)}")
             raise
+
+    def generate_ats_suggestions(
+        self, resume_text: str, job_description: Optional[str] = None
+    ) -> str:
+        """Generate in-depth ATS optimization suggestions."""
+        try:
+            prompt = self.template_manager.render_template(
+                "ats_optimization",
+                text_content=resume_text,
+                job_description=job_description,
+            )
+            if prompt is None:
+                raise ValueError("Failed to load ATS optimization template")
+
+            chat_params = {
+                "model": self.model_name,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a senior technical recruiter and ATS specialist.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                "options": {
+                    "stream": False,
+                    "temperature": 0.3,
+                    "top_p": 0.9,
+                },
+            }
+
+            response = self.provider.chat(**chat_params)
+            return response["message"]["content"]
+        except Exception as e:
+            logger.error(f"Error generating ATS suggestions: {str(e)}")
+            return "Could not generate ATS suggestions at this time."
