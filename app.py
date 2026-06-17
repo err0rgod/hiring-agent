@@ -24,6 +24,10 @@ templates = Jinja2Templates(directory="templates")
 async def index(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
 
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy(request: Request):
+    return templates.TemplateResponse(request=request, name="privacy.html")
+
 @app.post("/evaluate", response_class=HTMLResponse)
 async def evaluate(
     request: Request,
