@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Hiring Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <div class="gradient-bg py-8 px-4 shadow-lg mb-8">
+        <div class="max-w-4xl mx-auto flex justify-between items-center text-white">
+            <h1 class="text-3xl font-extrabold">Privacy Policy</h1>
+            <a href="/" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors font-medium">Back to Home</a>
+        </div>
+    </div>
+
+    <main class="max-w-3xl mx-auto px-4 pb-12">
+        <div class="bg-white rounded-xl shadow-md p-8 border border-gray-100 prose prose-indigo max-w-none">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">How We Handle Your Data</h2>
+            <p class="text-gray-600 mb-6">Your privacy is my top priority. This application is designed to be a "Zero-Retention" system. Here is exactly what happens when you use this tool:</p>
+            
+            <div class="space-y-6">
+                <section>
+                    <h3 class="text-lg font-bold text-gray-800">1. Resume Processing</h3>
+                    <p class="text-gray-600">When you upload a PDF, it is saved to a temporary directory on the server. Immediately after the AI analysis is complete, the file is <strong>deleted permanently</strong>. We do not store your resume on any database or cloud storage.</p>
+                </section>
+
+                <section>
+                    <h3 class="text-lg font-bold text-gray-800">2. API Keys</h3>
+                    <p class="text-gray-600">The Groq API key you provide is handled <strong>entirely in-memory</strong>. It is sent as an authentication header to the Groq API and is never logged, cached, or saved to a file. Once your browser session ends, the key is gone.</p>
+                </section>
+
+                <section>
+                    <h3 class="text-lg font-bold text-gray-800">3. GitHub Data</h3>
+                    <p class="text-gray-600">The application only fetches public information from your GitHub profile if a URL is found in your resume. This data is used solely to enhance your technical score.</p>
+                </section>
+
+                <section>
+                    <h3 class="text-lg font-bold text-gray-800">4. Third-Party Services</h3>
+                    <p class="text-gray-600">We use the <strong>Groq API</strong> to process and score your resume. By using this tool, you acknowledge that your resume text (not the PDF file itself) is sent to Groq for analysis under their privacy terms.</p>
+                </section>
+            </div>
+
+            <div class="mt-12 pt-8 border-t border-gray-100 text-center">
+                <p class="text-sm text-gray-500">Built with 💜 for the developer community.</p>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
