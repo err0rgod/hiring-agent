@@ -70,9 +70,17 @@
                         <span class="mr-2">⚠️</span> Deductions: -{{ score.deductions.total }}
                     </h3>
                     <ul class="text-sm text-red-700 space-y-1">
-                        {% for reason in score.deductions.reasons %}
-                        <li>• {{ reason }}</li>
-                        {% endfor %}
+                        {% if score.deductions.reasons is string %}
+                            {% for reason in score.deductions.reasons.split(',') %}
+                                {% if reason.strip() %}
+                                <li>• {{ reason.strip() }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            {% for reason in score.deductions.reasons %}
+                            <li>• {{ reason }}</li>
+                            {% endfor %}
+                        {% endif %}
                     </ul>
                 </div>
                 {% endif %}
