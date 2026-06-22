@@ -51,26 +51,27 @@ def initialize_llm_provider(model_name: str, api_key: Optional[str] = None) -> A
     Returns:
         An initialized LLM provider (either OllamaProvider, GeminiProvider, or GroqProvider)
     """
-    # Default to Ollama provider
-    provider = OllamaProvider()
-    # If using Gemini or Groq and API key is available, use appropriate provider
-    model_provider = MODEL_PROVIDER_MAPPING.get(model_name, ModelProvider.OLLAMA)
+    # Default to Groq provider
+    model_provider = MODEL_PROVIDER_MAPPING.get(model_name, ModelProvider.GROQ)
 
     if model_provider == ModelProvider.GEMINI:
         key = api_key or GEMINI_API_KEY
         if not key:
-            logger.warning("⚠️ Gemini API key not found. Falling back to Ollama.")
+            logger.warning("⚠️ Gemini API key not found.")
+            provider = GeminiProvider(api_key="")
         else:
             logger.info(f"🔄 Using Google Gemini API provider with model {model_name}")
             provider = GeminiProvider(api_key=key)
     elif model_provider == ModelProvider.GROQ:
         key = api_key or GROQ_API_KEY
         if not key:
-            logger.warning("⚠️ Groq API key not found. Falling back to Ollama.")
+            logger.warning("⚠️ Groq API key not found.")
+            provider = GroqProvider(api_key="")
         else:
             logger.info(f"🔄 Using Groq API provider with model {model_name}")
             provider = GroqProvider(api_key=key)
     else:
         logger.info(f"🔄 Using Ollama provider with model {model_name}")
+        provider = OllamaProvider()
     return provider
 

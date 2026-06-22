@@ -13,16 +13,12 @@ from models import ModelProvider
 load_dotenv()
 
 # Constants
-DEFAULT_MODEL_NAME = "gemma3:4b"
-DEFAULT_PROVIDER = ModelProvider.OLLAMA
+DEFAULT_MODEL_NAME = "llama-3.3-70b-versatile"
+DEFAULT_PROVIDER = ModelProvider.GROQ
 
-# Get model and provider from environment or use defaults
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", DEFAULT_MODEL_NAME)
-PROVIDER = os.getenv("LLM_PROVIDER", DEFAULT_PROVIDER.value)
-
-# Validate provider
-if PROVIDER not in [p.value for p in ModelProvider]:
-    PROVIDER = DEFAULT_PROVIDER.value
+# Hardcoded model and provider
+DEFAULT_MODEL = DEFAULT_MODEL_NAME
+PROVIDER = DEFAULT_PROVIDER.value
 
 # Model-specific parameters
 MODEL_PARAMETERS = {
