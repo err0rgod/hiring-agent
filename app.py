@@ -18,7 +18,8 @@ import score
 score.DEVELOPMENT_MODE = False
 
 app = FastAPI(title="Hiring Agent Web")
-templates = Jinja2Templates(directory="templates")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
