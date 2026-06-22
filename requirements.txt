@@ -12,3 +12,4 @@ uvicorn
 groq
 markdown
 python-multipart
+resend==2.4.0
